@@ -1,0 +1,68 @@
+services:
+  nginx:
+    image: ${NGINX_IMAGE}
+    container_name: ${COMPOSE_PROJECT_NAME}_nginx
+    depends_on:
+      - php
+    ports:
+      - "${APP_PORT}:80"
+    volumes:
+      - ./${APP_CODE_PATH}:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - file_platform_network
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_php
+    working_dir: /var/www/html
+    volumes:
+      - ./${APP_CODE_PATH}:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - file_platform_network
+
+  mysql:
+    image: ${MYSQL_IMAGE}
+    container_name: ${COMPOSE_PROJECT_NAME}_mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: ${TZ}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - file_platform_network
+
+  phpmyadmin:
+    image: ${PHPMYADMIN_IMAGE}
+    container_name: ${COMPOSE_PROJECT_NAME}_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    ports:
+      - "${PHPMYADMIN_PORT}:80"
+    environment:
+      PMA_HOST: ${PMA_HOST}
+      PMA_PORT: ${PMA_PORT}
+      PMA_USER: ${PMA_USER}
+      PMA_PASSWORD: ${PMA_PASSWORD}
+      UPLOAD_LIMIT: ${PMA_UPLOAD_LIMIT}
+    networks:
+      - file_platform_network
+
+volumes:
+  mysql_data:
+
+networks:
+  file_platform_network:
+    driver: bridge
