@@ -13,6 +13,13 @@ docker compose exec php composer install
 docker compose exec php php artisan migrate
 ```
 
+如果要跑 Laravel 測試，請優先在 PHP 容器內執行，避免吃到本機 PHP extension 缺件：
+
+```bash
+docker compose exec php php artisan test
+docker compose exec php php artisan test --filter=FileBrowserSearchTest
+```
+
 3. 啟動前端 Vite
 
 ```bash

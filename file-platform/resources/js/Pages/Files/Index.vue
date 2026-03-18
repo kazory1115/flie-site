@@ -4,7 +4,7 @@ import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useTrans } from '@/lib/i18n';
 
@@ -29,6 +29,14 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    pagination: {
+        type: Object,
+        required: true,
+    },
+    sort: {
+        type: Object,
+        required: true,
+    },
     query: {
         type: Object,
         required: true,
@@ -47,6 +55,13 @@ const uploadForm = useForm({
     folder_id: props.query.folder_id,
     file: null,
 });
+const searchForm = useForm({
+    search: props.query.search ?? '',
+});
+const sortForm = useForm({
+    sort_by: props.sort.by,
+    sort_direction: props.sort.direction,
+});
 const isDraggingFile = ref(false);
 
 const selectedUploadFileName = computed(() => uploadForm.file?.name ?? trans('files.no_file_selected'));
@@ -59,6 +74,7 @@ const uploadTargetLabel = computed(() => {
 
     return selectedFolder?.label ?? trans('files.root');
 });
+const hasActiveSearch = computed(() => Boolean((props.query.search ?? '').trim()));
 
 const setUploadFile = (file) => {
     uploadForm.file = file ?? null;
@@ -79,6 +95,37 @@ const uploadFile = () => {
     });
 };
 
+const submitSearch = () => {
+    router.get(route('files.index'), {
+        folder_id: props.query.folder_id ?? undefined,
+        search: searchForm.search?.trim() || undefined,
+        sort_by: sortForm.sort_by !== 'name' ? sortForm.sort_by : undefined,
+        sort_direction: sortForm.sort_direction !== 'asc' ? sortForm.sort_direction : undefined,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+};
+
+const clearSearch = () => {
+    searchForm.search = '';
+    submitSearch();
+};
+
+const submitSort = () => {
+    router.get(route('files.index'), {
+        folder_id: props.query.folder_id ?? undefined,
+        search: props.query.search ?? undefined,
+        sort_by: sortForm.sort_by !== 'name' ? sortForm.sort_by : undefined,
+        sort_direction: sortForm.sort_direction !== 'asc' ? sortForm.sort_direction : undefined,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+};
+
 const handleFileDrop = (event) => {
     isDraggingFile.value = false;
     setUploadFile(event.dataTransfer?.files?.[0] ?? null);
@@ -94,12 +141,40 @@ const deleteFolder = (folderId) => {
     });
 };
 
+const renameFolder = (folder) => {
+    const name = window.prompt(trans('files.rename_folder_prompt'), folder.name);
+
+    if (name === null) {
+        return;
+    }
+
+    useForm({
+        name,
+    }).patch(route('folders.update', folder.id), {
+        preserveScroll: true,
+    });
+};
+
 const deleteFile = (fileId) => {
     if (!window.confirm(trans('files.delete_file_confirm'))) {
         return;
     }
 
     useForm({}).delete(route('files.destroy', fileId), {
+        preserveScroll: true,
+    });
+};
+
+const renameFile = (file) => {
+    const name = window.prompt(trans('files.rename_file_prompt'), file.original_name);
+
+    if (name === null) {
+        return;
+    }
+
+    useForm({
+        name,
+    }).patch(route('files.update', file.id), {
         preserveScroll: true,
     });
 };
@@ -153,7 +228,11 @@ const formatSize = (size) => {
                         <Link
                             v-for="breadcrumb in breadcrumbs"
                             :key="breadcrumb.id ?? 'root'"
-                            :href="route('files.index', breadcrumb.id ? { folder_id: breadcrumb.id } : {})"
+                            :href="route('files.index', {
+                                folder_id: breadcrumb.id ?? undefined,
+                                sort_by: sortForm.sort_by !== 'name' ? sortForm.sort_by : undefined,
+                                sort_direction: sortForm.sort_direction !== 'asc' ? sortForm.sort_direction : undefined,
+                            })"
                             class="rounded-md px-2 py-1 hover:bg-slate-100 hover:text-slate-900"
                         >
                             {{ breadcrumb.name }}
@@ -292,13 +371,86 @@ const formatSize = (size) => {
                     </div>
                 </div>
 
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-900">
+                        {{ trans('files.search_title') }}
+                    </h3>
+                    <p class="mt-1 text-sm text-slate-500">
+                        {{ trans('files.search_description') }}
+                    </p>
+
+                    <form class="mt-4 flex flex-col gap-3 md:flex-row" @submit.prevent="submitSearch">
+                        <TextInput
+                            v-model="searchForm.search"
+                            type="text"
+                            class="block w-full"
+                            :placeholder="trans('files.search_placeholder')"
+                        />
+                        <div class="flex gap-3">
+                            <PrimaryButton :disabled="searchForm.processing">
+                                {{ trans('files.search_submit') }}
+                            </PrimaryButton>
+                            <button
+                                v-if="hasActiveSearch"
+                                type="button"
+                                class="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                @click="clearSearch"
+                            >
+                                {{ trans('files.search_clear') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-900">
+                        {{ trans('files.sort_title') }}
+                    </h3>
+                    <p class="mt-1 text-sm text-slate-500">
+                        {{ trans('files.sort_description') }}
+                    </p>
+
+                    <form class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" @submit.prevent="submitSort">
+                        <select
+                            v-model="sortForm.sort_by"
+                            class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        >
+                            <option value="name">{{ trans('files.sort_name') }}</option>
+                            <option value="created_at">{{ trans('files.sort_created_at') }}</option>
+                            <option value="size">{{ trans('files.sort_size') }}</option>
+                        </select>
+                        <select
+                            v-model="sortForm.sort_direction"
+                            class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        >
+                            <option value="asc">{{ trans('files.sort_asc') }}</option>
+                            <option value="desc">{{ trans('files.sort_desc') }}</option>
+                        </select>
+                        <PrimaryButton :disabled="sortForm.processing">
+                            {{ trans('files.sort_submit') }}
+                        </PrimaryButton>
+                    </form>
+                </div>
+
                 <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div class="border-b border-slate-200 px-6 py-4">
-                        <h3 class="text-lg font-semibold text-slate-900">
-                            {{ trans('files.current_location') }}
-                        </h3>
-                        <p class="mt-1 text-sm text-slate-500">
-                            {{ currentLocationLabel }}
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold text-slate-900">
+                                    {{ trans('files.current_location') }}
+                                </h3>
+                                <p class="mt-1 text-sm text-slate-500">
+                                    {{ currentLocationLabel }}
+                                </p>
+                            </div>
+
+                            <p class="text-sm text-slate-500">
+                                {{ trans('files.pagination_summary', { from: props.pagination.from, to: props.pagination.to, total: props.pagination.total }) }}
+                            </p>
+                        </div>
+
+                        <p v-if="hasActiveSearch" class="mt-3 text-sm text-sky-700">
+                            {{ trans('files.search_results', { keyword: props.query.search }) }}
                         </p>
                     </div>
 
@@ -322,11 +474,15 @@ const formatSize = (size) => {
 
                                 <tr v-for="folder in folders" :key="`folder-${folder.id}`" class="hover:bg-slate-50">
                                     <td class="px-6 py-4">
-                                        <Link
-                                            :href="route('files.index', { folder_id: folder.id })"
-                                            class="font-medium text-slate-900 hover:text-sky-700"
-                                        >
-                                            {{ folder.name }}
+                                            <Link
+                                                :href="route('files.index', {
+                                                    folder_id: folder.id,
+                                                    sort_by: sortForm.sort_by !== 'name' ? sortForm.sort_by : undefined,
+                                                    sort_direction: sortForm.sort_direction !== 'asc' ? sortForm.sort_direction : undefined,
+                                                })"
+                                                class="font-medium text-slate-900 hover:text-sky-700"
+                                            >
+                                                {{ folder.name }}
                                         </Link>
                                     </td>
                                     <td class="px-6 py-4 text-slate-500">{{ trans('files.folder') }}</td>
@@ -335,11 +491,22 @@ const formatSize = (size) => {
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex justify-end gap-2">
                                             <Link
-                                                :href="route('files.index', { folder_id: folder.id })"
+                                                :href="route('files.index', {
+                                                    folder_id: folder.id,
+                                                    sort_by: sortForm.sort_by !== 'name' ? sortForm.sort_by : undefined,
+                                                    sort_direction: sortForm.sort_direction !== 'asc' ? sortForm.sort_direction : undefined,
+                                                })"
                                                 class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                                             >
                                                 {{ trans('files.open_folder') }}
                                             </Link>
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                                @click="renameFolder(folder)"
+                                            >
+                                                {{ trans('files.rename') }}
+                                            </button>
                                             <DangerButton @click="deleteFolder(folder.id)">
                                                 {{ trans('files.delete') }}
                                             </DangerButton>
@@ -366,6 +533,13 @@ const formatSize = (size) => {
                                             >
                                                 {{ trans('files.download') }}
                                             </a>
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                                @click="renameFile(file)"
+                                            >
+                                                {{ trans('files.rename') }}
+                                            </button>
                                             <DangerButton @click="deleteFile(file.id)">
                                                 {{ trans('files.delete') }}
                                             </DangerButton>
@@ -374,6 +548,38 @@ const formatSize = (size) => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <div
+                        v-if="props.pagination.links.length > 0"
+                        class="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between"
+                    >
+                        <p class="text-sm text-slate-500">
+                            {{ trans('files.pagination_page', { current: props.pagination.current_page, last: props.pagination.last_page }) }}
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <template v-for="link in props.pagination.links" :key="`${link.label}-${link.url ?? 'disabled'}`">
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    preserve-scroll
+                                    class="inline-flex min-w-10 items-center justify-center rounded-md border px-3 py-2 text-sm font-semibold transition"
+                                    :class="link.active
+                                        ? 'border-slate-900 bg-slate-900 text-white'
+                                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'"
+                                >
+                                    {{ link.label }}
+                                </Link>
+
+                                <span
+                                    v-else
+                                    class="inline-flex min-w-10 cursor-not-allowed items-center justify-center rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
+                                >
+                                    {{ link.label }}
+                                </span>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>

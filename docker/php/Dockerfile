@@ -11,9 +11,10 @@ RUN apt-get update \
         libjpeg62-turbo-dev \
         libfreetype6-dev \
         libonig-dev \
+        libsqlite3-dev \
         libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mysqli zip gd \
+    && docker-php-ext-install pdo_mysql pdo_sqlite mysqli zip gd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

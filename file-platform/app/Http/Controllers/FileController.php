@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RenameFileRequest;
 use App\Http\Requests\UploadFileRequest;
 use App\Models\UserFile;
 use App\Services\FileService;
@@ -44,5 +45,16 @@ class FileController extends Controller
         $this->fileService->delete($request->user(), $file->id);
 
         return back()->with('success', __('ui.messages.file_deleted'));
+    }
+
+    public function update(RenameFileRequest $request, UserFile $file): RedirectResponse
+    {
+        $this->fileService->rename(
+            $request->user(),
+            $file->id,
+            $request->string('name')->trim()->toString(),
+        );
+
+        return back()->with('success', __('ui.messages.file_renamed'));
     }
 }

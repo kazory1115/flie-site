@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateFolderRequest;
+use App\Http\Requests\RenameFolderRequest;
 use App\Models\Folder;
 use App\Services\FolderService;
 use Illuminate\Http\RedirectResponse;
@@ -33,5 +34,16 @@ class FolderController extends Controller
         return redirect()
             ->route('files.index', ['folder_id' => $folder->parent_id])
             ->with('success', __('ui.messages.folder_deleted'));
+    }
+
+    public function update(RenameFolderRequest $request, Folder $folder): RedirectResponse
+    {
+        $this->folderService->rename(
+            $request->user(),
+            $folder->id,
+            $request->string('name')->trim()->toString(),
+        );
+
+        return back()->with('success', __('ui.messages.folder_renamed'));
     }
 }

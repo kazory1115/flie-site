@@ -63,4 +63,47 @@ class FolderService
 
         DB::transaction(fn () => $this->folderRepository->delete($folder));
     }
+
+    public function rename(User $user, int $folderId, string $name): void
+    {
+        $name = trim($name);
+
+        $folder = $this->folderRepository->findUserFolderById($user->id, $folderId);
+
+        if ($folder === null) {
+            throw ValidationException::withMessages([
+                'folder' => __('ui.messages.folder_not_found'),
+            ]);
+        }
+
+        if ($name === '') {
+            throw ValidationException::withMessages([
+                'name' => __('validation.required', ['attribute' => __('ui.files.name')]),
+            ]);
+        }
+
+        if ($this->folderRepository->existsSiblingNameExcept($user->id, $folder->parent_id, $name, $folder->id)) {
+            throw ValidationException::withMessages([
+                'name' => __('ui.messages.duplicate_folder_name'),
+            ]);
+        }
+
+        $oldPath = $folder->path;
+        $newPath = $folder->parent?->path
+            ? "{$folder->parent->path}/{$name}"
+            : $name;
+
+        DB::transaction(function () use ($folder, $name, $oldPath, $newPath, $user): void {
+            $folder->name = $name;
+            $folder->path = $newPath;
+            $this->folderRepository->save($folder);
+
+            $descendants = $this->folderRepository->getDescendantsByPathPrefix($user->id, $oldPath);
+
+            foreach ($descendants as $descendant) {
+                $descendant->path = $newPath.substr($descendant->path, strlen($oldPath));
+                $this->folderRepository->save($descendant);
+            }
+        });
+    }
 }

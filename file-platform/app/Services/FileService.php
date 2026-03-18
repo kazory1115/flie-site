@@ -20,6 +20,7 @@ class FileService
     public function __construct(
         private readonly FolderRepository $folderRepository,
         private readonly UserFileRepository $userFileRepository,
+        private readonly QuotaService $quotaService,
     ) {
     }
 
@@ -38,6 +39,8 @@ class FileService
                 'file' => __('ui.messages.duplicate_file_name'),
             ]);
         }
+
+        $this->quotaService->ensureWithinQuota($user, (int) $uploadedFile->getSize());
 
         $extension = $uploadedFile->getClientOriginalExtension();
         $storedName = $extension !== ''
@@ -81,6 +84,27 @@ class FileService
             Storage::disk($file->disk)->delete($file->path);
             $this->userFileRepository->delete($file);
         });
+    }
+
+    public function rename(User $user, int $fileId, string $name): void
+    {
+        $name = trim($name);
+        $file = $this->findOwnedFile($user->id, $fileId);
+
+        if ($name === '') {
+            throw ValidationException::withMessages([
+                'name' => __('validation.required', ['attribute' => __('ui.files.name')]),
+            ]);
+        }
+
+        if ($this->userFileRepository->existsDuplicateNameExcept($user->id, $file->folder_id, $name, $file->id)) {
+            throw ValidationException::withMessages([
+                'name' => __('ui.messages.duplicate_file_name'),
+            ]);
+        }
+
+        $file->original_name = $name;
+        $this->userFileRepository->save($file);
     }
 
     private function findOwnedFile(int $userId, int $fileId): UserFile
