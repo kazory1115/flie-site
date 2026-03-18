@@ -5,10 +5,12 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { useTrans } from '@/lib/i18n';
 
 const form = useForm({
     password: '',
 });
+const { trans } = useTrans();
 
 const submit = () => {
     form.post(route('password.confirm'), {
@@ -19,16 +21,15 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Confirm Password" />
+        <Head :title="trans('auth.confirm_password')" />
 
         <div class="mb-4 text-sm text-gray-600">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
+            {{ trans('auth.confirm_password_description') }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="trans('auth.password')" />
                 <TextInput
                     id="password"
                     type="password"
@@ -47,7 +48,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Confirm
+                    {{ trans('auth.confirm') }}
                 </PrimaryButton>
             </div>
         </form>

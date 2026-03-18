@@ -5,6 +5,8 @@ import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { useTrans } from '@/lib/i18n';
 
 const props = defineProps({
     currentFolder: {
@@ -12,6 +14,10 @@ const props = defineProps({
         default: null,
     },
     breadcrumbs: {
+        type: Array,
+        required: true,
+    },
+    folderOptionGroups: {
         type: Array,
         required: true,
     },
@@ -30,6 +36,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+const { trans } = useTrans();
 
 const folderForm = useForm({
     parent_id: props.query.folder_id,
@@ -40,6 +47,22 @@ const uploadForm = useForm({
     folder_id: props.query.folder_id,
     file: null,
 });
+const isDraggingFile = ref(false);
+
+const selectedUploadFileName = computed(() => uploadForm.file?.name ?? trans('files.no_file_selected'));
+const selectedUploadFileSize = computed(() => uploadForm.file?.size ? formatSize(uploadForm.file.size) : trans('files.no_file_size'));
+const currentLocationLabel = computed(() => props.currentFolder?.path ?? trans('files.root'));
+const uploadTargetLabel = computed(() => {
+    const selectedFolder = props.folderOptionGroups
+        .flatMap((group) => group.options)
+        .find((folder) => folder.id === uploadForm.folder_id);
+
+    return selectedFolder?.label ?? trans('files.root');
+});
+
+const setUploadFile = (file) => {
+    uploadForm.file = file ?? null;
+};
 
 const createFolder = () => {
     folderForm.post(route('folders.store'), {
@@ -56,8 +79,13 @@ const uploadFile = () => {
     });
 };
 
+const handleFileDrop = (event) => {
+    isDraggingFile.value = false;
+    setUploadFile(event.dataTransfer?.files?.[0] ?? null);
+};
+
 const deleteFolder = (folderId) => {
-    if (!window.confirm('只允許刪除空資料夾，確定要刪除嗎？')) {
+    if (!window.confirm(trans('files.delete_folder_confirm'))) {
         return;
     }
 
@@ -67,7 +95,7 @@ const deleteFolder = (folderId) => {
 };
 
 const deleteFile = (fileId) => {
-    if (!window.confirm('確定要刪除這個檔案嗎？')) {
+    if (!window.confirm(trans('files.delete_file_confirm'))) {
         return;
     }
 
@@ -95,17 +123,17 @@ const formatSize = (size) => {
 </script>
 
 <template>
-    <Head title="檔案空間" />
+    <Head :title="trans('files.title')" />
 
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                        檔案空間
+                        {{ trans('files.title') }}
                     </h2>
                     <p class="mt-1 text-sm text-gray-500">
-                        第一版先提供資料夾、上傳、下載、刪除。
+                        {{ trans('files.subtitle') }}
                     </p>
                 </div>
             </div>
@@ -136,38 +164,129 @@ const formatSize = (size) => {
                 <div class="grid gap-6 lg:grid-cols-2">
                     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h3 class="text-lg font-semibold text-slate-900">
-                            建立資料夾
+                            {{ trans('files.create_folder') }}
                         </h3>
                         <form class="mt-4 space-y-3" @submit.prevent="createFolder">
                             <TextInput
                                 v-model="folderForm.name"
                                 type="text"
                                 class="block w-full"
-                                placeholder="例如：合約文件"
+                                :placeholder="trans('files.create_folder_placeholder')"
                             />
                             <InputError :message="folderForm.errors.name || folderForm.errors.parent_id" />
                             <PrimaryButton :disabled="folderForm.processing">
-                                新增資料夾
+                                {{ trans('files.create_folder_submit') }}
                             </PrimaryButton>
                         </form>
                     </div>
 
                     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h3 class="text-lg font-semibold text-slate-900">
-                            上傳檔案
+                            {{ trans('files.upload_file') }}
                         </h3>
                         <form class="mt-4 space-y-3" @submit.prevent="uploadFile">
-                            <input
-                                type="file"
-                                class="block w-full rounded-lg border border-slate-300 text-sm file:mr-4 file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-slate-700"
-                                @input="uploadForm.file = $event.target.files[0]"
+                            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                        {{ trans('files.upload_target') }}
+                                    </p>
+                                    <p class="mt-1 text-sm font-medium text-slate-700">
+                                        {{ uploadTargetLabel }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                    {{ trans('files.target_folder_select') }}
+                                </label>
+                                <select
+                                    v-model="uploadForm.folder_id"
+                                    class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                                >
+                                    <optgroup
+                                        v-for="group in folderOptionGroups"
+                                        :key="group.label"
+                                        :label="group.label"
+                                    >
+                                        <option
+                                            v-for="folder in group.options"
+                                            :key="`${group.label}-${folder.id ?? 'root'}`"
+                                            :value="folder.id"
+                                        >
+                                            {{ folder.label }}
+                                        </option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <label
+                                class="group block cursor-pointer rounded-2xl border-2 border-dashed px-5 py-6 transition"
+                                :class="isDraggingFile
+                                    ? 'border-sky-500 bg-sky-50'
+                                    : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'"
+                                @dragenter.prevent="isDraggingFile = true"
+                                @dragover.prevent="isDraggingFile = true"
+                                @dragleave.prevent="isDraggingFile = false"
+                                @drop.prevent="handleFileDrop"
                             >
+                                <div class="flex flex-col items-center text-center">
+                                    <div
+                                        class="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition"
+                                        :class="isDraggingFile ? 'bg-sky-100 text-sky-700' : 'bg-slate-900 text-white'"
+                                    >
+                                        <svg
+                                            class="h-7 w-7"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9l-4-6Z" />
+                                            <path d="M14 3v6h6" />
+                                            <path d="M12 11v6" />
+                                            <path d="M9.5 14.5 12 12l2.5 2.5" />
+                                        </svg>
+                                    </div>
+
+                                    <p class="mt-4 text-sm font-semibold text-slate-900">
+                                        {{ trans('files.drop_file_here') }}
+                                    </p>
+                                    <p class="mt-1 text-xs text-slate-500">
+                                        {{ trans('files.or_click_to_choose') }}
+                                    </p>
+
+                                    <div class="mt-5 w-full rounded-xl bg-white/80 px-4 py-3 shadow-sm ring-1 ring-slate-200">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="min-w-0 text-left">
+                                                <p class="truncate text-sm font-medium text-slate-800">
+                                                    {{ selectedUploadFileName }}
+                                                </p>
+                                                <p class="mt-1 text-xs text-slate-500">
+                                                    {{ selectedUploadFileSize }}
+                                                </p>
+                                            </div>
+                                            <span class="inline-flex shrink-0 items-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+                                                {{ trans('files.choose_file') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <input
+                                    type="file"
+                                    class="hidden"
+                                    @change="setUploadFile($event.target.files[0] ?? null)"
+                                >
+                            </label>
                             <InputError :message="uploadForm.errors.file || uploadForm.errors.folder_id" />
                             <p class="text-xs text-slate-500">
-                                目前限制單檔 100 MB。
+                                {{ trans('files.upload_hint') }}
                             </p>
                             <PrimaryButton :disabled="uploadForm.processing">
-                                上傳檔案
+                                {{ trans('files.upload_submit') }}
                             </PrimaryButton>
                         </form>
                     </div>
@@ -176,10 +295,10 @@ const formatSize = (size) => {
                 <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div class="border-b border-slate-200 px-6 py-4">
                         <h3 class="text-lg font-semibold text-slate-900">
-                            目前位置
+                            {{ trans('files.current_location') }}
                         </h3>
                         <p class="mt-1 text-sm text-slate-500">
-                            {{ currentFolder?.path ?? '根目錄' }}
+                            {{ currentLocationLabel }}
                         </p>
                     </div>
 
@@ -187,17 +306,17 @@ const formatSize = (size) => {
                         <table class="min-w-full divide-y divide-slate-200 text-sm">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left font-medium text-slate-500">名稱</th>
-                                    <th class="px-6 py-3 text-left font-medium text-slate-500">類型</th>
-                                    <th class="px-6 py-3 text-left font-medium text-slate-500">大小</th>
-                                    <th class="px-6 py-3 text-left font-medium text-slate-500">建立時間</th>
-                                    <th class="px-6 py-3 text-right font-medium text-slate-500">操作</th>
+                                    <th class="px-6 py-3 text-left font-medium text-slate-500">{{ trans('files.name') }}</th>
+                                    <th class="px-6 py-3 text-left font-medium text-slate-500">{{ trans('files.type') }}</th>
+                                    <th class="px-6 py-3 text-left font-medium text-slate-500">{{ trans('files.size') }}</th>
+                                    <th class="px-6 py-3 text-left font-medium text-slate-500">{{ trans('files.created_at') }}</th>
+                                    <th class="px-6 py-3 text-right font-medium text-slate-500">{{ trans('files.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 <tr v-if="folders.length === 0 && files.length === 0">
                                     <td colspan="5" class="px-6 py-10 text-center text-slate-400">
-                                        目前沒有任何資料。
+                                        {{ trans('files.empty') }}
                                     </td>
                                 </tr>
 
@@ -210,13 +329,21 @@ const formatSize = (size) => {
                                             {{ folder.name }}
                                         </Link>
                                     </td>
-                                    <td class="px-6 py-4 text-slate-500">資料夾</td>
+                                    <td class="px-6 py-4 text-slate-500">{{ trans('files.folder') }}</td>
                                     <td class="px-6 py-4 text-slate-500">-</td>
                                     <td class="px-6 py-4 text-slate-500">{{ folder.created_at }}</td>
                                     <td class="px-6 py-4 text-right">
-                                        <DangerButton @click="deleteFolder(folder.id)">
-                                            刪除
-                                        </DangerButton>
+                                        <div class="flex justify-end gap-2">
+                                            <Link
+                                                :href="route('files.index', { folder_id: folder.id })"
+                                                class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                            >
+                                                {{ trans('files.open_folder') }}
+                                            </Link>
+                                            <DangerButton @click="deleteFolder(folder.id)">
+                                                {{ trans('files.delete') }}
+                                            </DangerButton>
+                                        </div>
                                     </td>
                                 </tr>
 
@@ -237,10 +364,10 @@ const formatSize = (size) => {
                                                 :href="file.download_url"
                                                 class="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                                             >
-                                                下載
+                                                {{ trans('files.download') }}
                                             </a>
                                             <DangerButton @click="deleteFile(file.id)">
-                                                刪除
+                                                {{ trans('files.delete') }}
                                             </DangerButton>
                                         </div>
                                     </td>

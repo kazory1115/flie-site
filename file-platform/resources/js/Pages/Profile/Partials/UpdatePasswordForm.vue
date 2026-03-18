@@ -5,9 +5,11 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useTrans } from '@/lib/i18n';
 
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
+const { trans } = useTrans();
 
 const form = useForm({
     current_password: '',
@@ -37,18 +39,17 @@ const updatePassword = () => {
     <section>
         <header>
             <h2 class="text-lg font-medium text-gray-900">
-                Update Password
+                {{ trans('profile.password_title') }}
             </h2>
 
             <p class="mt-1 text-sm text-gray-600">
-                Ensure your account is using a long, random password to stay
-                secure.
+                {{ trans('profile.password_description') }}
             </p>
         </header>
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
             <div>
-                <InputLabel for="current_password" value="Current Password" />
+                <InputLabel for="current_password" :value="trans('profile.current_password')" />
 
                 <TextInput
                     id="current_password"
@@ -66,7 +67,7 @@ const updatePassword = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="New Password" />
+                <InputLabel for="password" :value="trans('profile.new_password')" />
 
                 <TextInput
                     id="password"
@@ -83,7 +84,7 @@ const updatePassword = () => {
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    :value="trans('auth.confirm_password_label')"
                 />
 
                 <TextInput
@@ -101,7 +102,7 @@ const updatePassword = () => {
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                <PrimaryButton :disabled="form.processing">{{ trans('profile.save') }}</PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"
@@ -113,7 +114,7 @@ const updatePassword = () => {
                         v-if="form.recentlySuccessful"
                         class="text-sm text-gray-600"
                     >
-                        Saved.
+                        {{ trans('profile.saved') }}
                     </p>
                 </Transition>
             </div>

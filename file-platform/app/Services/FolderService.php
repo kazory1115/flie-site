@@ -23,13 +23,13 @@ class FolderService
 
         if ($parentId !== null && $parent === null) {
             throw ValidationException::withMessages([
-                'parent_id' => '上層資料夾不存在。',
+                'parent_id' => __('ui.messages.parent_folder_not_found'),
             ]);
         }
 
         if ($this->folderRepository->existsSiblingName($user->id, $parent?->id, $name)) {
             throw ValidationException::withMessages([
-                'name' => '同一層已存在相同名稱的資料夾。',
+                'name' => __('ui.messages.duplicate_folder_name'),
             ]);
         }
 
@@ -51,13 +51,13 @@ class FolderService
 
         if ($folder === null) {
             throw ValidationException::withMessages([
-                'folder' => '找不到要刪除的資料夾。',
+                'folder' => __('ui.messages.folder_not_found'),
             ]);
         }
 
         if ($this->folderRepository->hasChildren($folder->id) || $this->userFileRepository->existsInFolder($folder->id)) {
             throw ValidationException::withMessages([
-                'folder' => '資料夾內仍有資料，請先清空後再刪除。',
+                'folder' => __('ui.messages.folder_not_empty'),
             ]);
         }
 

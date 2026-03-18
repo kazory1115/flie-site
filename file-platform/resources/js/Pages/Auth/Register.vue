@@ -5,6 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useTrans } from '@/lib/i18n';
 
 const form = useForm({
     name: '',
@@ -12,6 +13,7 @@ const form = useForm({
     password: '',
     password_confirmation: '',
 });
+const { trans } = useTrans();
 
 const submit = () => {
     form.post(route('register'), {
@@ -22,11 +24,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Register" />
+        <Head :title="trans('auth.register')" />
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="name" value="Name" />
+                <InputLabel for="name" :value="trans('auth.name')" />
 
                 <TextInput
                     id="name"
@@ -42,7 +44,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="trans('auth.email')" />
 
                 <TextInput
                     id="email"
@@ -57,7 +59,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="trans('auth.password')" />
 
                 <TextInput
                     id="password"
@@ -74,7 +76,7 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    :value="trans('auth.confirm_password_label')"
                 />
 
                 <TextInput
@@ -97,7 +99,7 @@ const submit = () => {
                     :href="route('login')"
                     class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
-                    Already registered?
+                    {{ trans('auth.already_registered') }}
                 </Link>
 
                 <PrimaryButton
@@ -105,7 +107,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Register
+                    {{ trans('auth.register') }}
                 </PrimaryButton>
             </div>
         </form>

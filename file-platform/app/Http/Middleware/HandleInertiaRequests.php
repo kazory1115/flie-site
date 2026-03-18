@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -36,6 +37,14 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+            ],
+            'locale' => [
+                'current' => app()->getLocale(),
+                'available' => [
+                    'en' => __('ui.locale.en'),
+                    'zh_TW' => __('ui.locale.zh_TW'),
+                ],
+                'translations' => Lang::get('ui'),
             ],
         ];
     }

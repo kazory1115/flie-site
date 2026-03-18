@@ -4,6 +4,7 @@ import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
 import { Head } from '@inertiajs/vue3';
+import { useTrans } from '@/lib/i18n';
 
 defineProps({
     mustVerifyEmail: {
@@ -13,17 +14,18 @@ defineProps({
         type: String,
     },
 });
+const { trans } = useTrans();
 </script>
 
 <template>
-    <Head title="Profile" />
+    <Head :title="trans('profile.title')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2
                 class="text-xl font-semibold leading-tight text-gray-800"
             >
-                Profile
+                {{ trans('profile.title') }}
             </h2>
         </template>
 

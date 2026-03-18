@@ -22,7 +22,7 @@ class CreateFolderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => '資料夾名稱包含不合法字元。',
+            'name.regex' => __('ui.messages.invalid_folder_name'),
         ];
     }
 }

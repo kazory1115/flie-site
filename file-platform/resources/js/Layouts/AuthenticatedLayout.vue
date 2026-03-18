@@ -3,11 +3,14 @@ import { ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link } from '@inertiajs/vue3';
+import { useTrans } from '@/lib/i18n';
 
 const showingNavigationDropdown = ref(false);
+const { trans } = useTrans();
 </script>
 
 <template>
@@ -37,18 +40,20 @@ const showingNavigationDropdown = ref(false);
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
                                 >
-                                    Dashboard
+                                    {{ trans('nav.dashboard') }}
                                 </NavLink>
                                 <NavLink
                                     :href="route('files.index')"
                                     :active="route().current('files.*')"
                                 >
-                                    Files
+                                    {{ trans('nav.files') }}
                                 </NavLink>
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                        <div class="hidden sm:ms-6 sm:flex sm:items-center sm:gap-3">
+                            <LocaleSwitcher compact mode="dropdown" />
+
                             <!-- Settings Dropdown -->
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
@@ -80,14 +85,14 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink
                                             :href="route('profile.edit')"
                                         >
-                                            Profile
+                                            {{ trans('nav.profile') }}
                                         </DropdownLink>
                                         <DropdownLink
                                             :href="route('logout')"
                                             method="post"
                                             as="button"
                                         >
-                                            Log Out
+                                            {{ trans('nav.logout') }}
                                         </DropdownLink>
                                     </template>
                                 </Dropdown>
@@ -150,13 +155,13 @@ const showingNavigationDropdown = ref(false);
                             :href="route('dashboard')"
                             :active="route().current('dashboard')"
                         >
-                            Dashboard
+                            {{ trans('nav.dashboard') }}
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('files.index')"
                             :active="route().current('files.*')"
                         >
-                            Files
+                            {{ trans('nav.files') }}
                         </ResponsiveNavLink>
                     </div>
 
@@ -175,16 +180,20 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
+                        <div class="mt-3 px-4">
+                            <LocaleSwitcher compact mode="dropdown" />
+                        </div>
+
                         <div class="mt-3 space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
+                                {{ trans('nav.profile') }}
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('logout')"
                                 method="post"
                                 as="button"
                             >
-                                Log Out
+                                {{ trans('nav.logout') }}
                             </ResponsiveNavLink>
                         </div>
                     </div>

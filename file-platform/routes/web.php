@@ -3,8 +3,10 @@
 use App\Http\Controllers\FileBrowserController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return auth()->check()
@@ -12,8 +14,10 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
+Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
+
 Route::get('/dashboard', function () {
-    return redirect()->route('files.index');
+    return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

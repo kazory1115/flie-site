@@ -29,13 +29,13 @@ class FileService
 
         if ($folderId !== null && $folder === null) {
             throw ValidationException::withMessages([
-                'folder_id' => '上傳目標資料夾不存在。',
+                'folder_id' => __('ui.messages.upload_target_not_found'),
             ]);
         }
 
         if ($this->userFileRepository->existsDuplicateName($user->id, $folder?->id, $uploadedFile->getClientOriginalName())) {
             throw ValidationException::withMessages([
-                'file' => '同一資料夾內已存在相同檔名的檔案。',
+                'file' => __('ui.messages.duplicate_file_name'),
             ]);
         }
 
@@ -66,7 +66,7 @@ class FileService
 
         if (! Storage::disk($file->disk)->exists($file->path)) {
             throw ValidationException::withMessages([
-                'file' => '實體檔案不存在，請重新上傳。',
+                'file' => __('ui.messages.physical_file_missing'),
             ]);
         }
 
@@ -89,7 +89,7 @@ class FileService
 
         if ($file === null) {
             throw ValidationException::withMessages([
-                'file' => '找不到指定檔案。',
+                'file' => __('ui.messages.file_not_found'),
             ]);
         }
 

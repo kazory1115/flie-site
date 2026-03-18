@@ -28,6 +28,14 @@ class FolderRepository
             ->get();
     }
 
+    public function getAllByUserId(int $userId): Collection
+    {
+        return Folder::query()
+            ->where('user_id', $userId)
+            ->orderBy('path')
+            ->get();
+    }
+
     public function existsSiblingName(int $userId, ?int $parentId, string $name): bool
     {
         return Folder::query()

@@ -19,7 +19,11 @@ class FileBrowserController extends Controller
         $folderId = $request->integer('folder_id') ?: null;
 
         return Inertia::render('Files/Index', [
-            ...$this->fileBrowserService->buildIndexData($request->user(), $folderId),
+            ...$this->fileBrowserService->buildIndexData(
+                $request->user(),
+                $folderId,
+                $request->session()->get('recent_upload_targets', []),
+            ),
             'query' => [
                 'folder_id' => $folderId,
             ],

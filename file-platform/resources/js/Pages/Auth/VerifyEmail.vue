@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useTrans } from '@/lib/i18n';
 
 const props = defineProps({
     status: {
@@ -11,6 +12,7 @@ const props = defineProps({
 });
 
 const form = useForm({});
+const { trans } = useTrans();
 
 const submit = () => {
     form.post(route('verification.send'));
@@ -23,20 +25,17 @@ const verificationLinkSent = computed(
 
 <template>
     <GuestLayout>
-        <Head title="Email Verification" />
+        <Head :title="trans('auth.email_verification')" />
 
         <div class="mb-4 text-sm text-gray-600">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
+            {{ trans('auth.verify_email_description') }}
         </div>
 
         <div
             class="mb-4 text-sm font-medium text-green-600"
             v-if="verificationLinkSent"
         >
-            A new verification link has been sent to the email address you
-            provided during registration.
+            {{ trans('auth.verification_link_sent') }}
         </div>
 
         <form @submit.prevent="submit">
@@ -45,7 +44,7 @@ const verificationLinkSent = computed(
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Resend Verification Email
+                    {{ trans('auth.resend_verification_email') }}
                 </PrimaryButton>
 
                 <Link
@@ -53,7 +52,7 @@ const verificationLinkSent = computed(
                     method="post"
                     as="button"
                     class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >Log Out</Link
+                    >{{ trans('nav.logout') }}</Link
                 >
             </div>
         </form>

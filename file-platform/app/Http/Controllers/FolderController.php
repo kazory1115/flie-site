@@ -23,7 +23,7 @@ class FolderController extends Controller
             $request->integer('parent_id') ?: null,
         );
 
-        return back()->with('success', '資料夾建立完成。');
+        return back()->with('success', __('ui.messages.folder_created'));
     }
 
     public function destroy(Request $request, Folder $folder): RedirectResponse
@@ -32,6 +32,6 @@ class FolderController extends Controller
 
         return redirect()
             ->route('files.index', ['folder_id' => $folder->parent_id])
-            ->with('success', '資料夾已刪除。');
+            ->with('success', __('ui.messages.folder_deleted'));
     }
 }

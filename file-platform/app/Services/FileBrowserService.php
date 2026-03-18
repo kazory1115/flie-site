@@ -16,19 +16,21 @@ class FileBrowserService
     ) {
     }
 
-    public function buildIndexData(User $user, ?int $folderId): array
+    public function buildIndexData(User $user, ?int $folderId, array $recentUploadTargets = []): array
     {
         $currentFolder = $this->folderRepository->findUserFolderById($user->id, $folderId);
+        $allFolders = $this->folderRepository->getAllByUserId($user->id);
 
         if ($folderId !== null && $currentFolder === null) {
             throw ValidationException::withMessages([
-                'folder_id' => '找不到指定的資料夾。',
+                'folder_id' => __('ui.messages.folder_not_found'),
             ]);
         }
 
         return [
             'currentFolder' => $currentFolder ? $this->transformFolder($currentFolder) : null,
             'breadcrumbs' => $this->buildBreadcrumbs($currentFolder),
+            'folderOptionGroups' => $this->buildFolderOptionGroups($allFolders, $recentUploadTargets),
             'folders' => $this->folderRepository
                 ->getChildrenByParentId($user->id, $currentFolder?->id)
                 ->map(fn (Folder $folder) => $this->transformFolder($folder))
@@ -53,7 +55,7 @@ class FileBrowserService
         $items = [
             [
                 'id' => null,
-                'name' => '根目錄',
+                'name' => __('ui.files.root'),
             ],
         ];
 
@@ -84,5 +86,62 @@ class FileBrowserService
             'path' => $folder->path,
             'created_at' => $folder->created_at?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    private function buildFolderOptionGroups($folders, array $recentUploadTargets): array
+    {
+        $allOptions = collect([
+            [
+                'id' => null,
+                'label' => __('ui.files.root'),
+            ],
+        ])->merge(
+            $folders->map(fn (Folder $folder) => [
+                'id' => $folder->id,
+                'label' => str_repeat('　', substr_count($folder->path, '/')).$folder->name,
+                'path' => $folder->path,
+            ])
+        )->values();
+
+        $recentOptions = collect($recentUploadTargets)
+            ->map(function ($target) use ($folders) {
+                if ($target === 'root') {
+                    return [
+                        'id' => null,
+                        'label' => __('ui.files.root'),
+                    ];
+                }
+
+                $folder = $folders->firstWhere('id', (int) $target);
+
+                if ($folder === null) {
+                    return null;
+                }
+
+                return [
+                    'id' => $folder->id,
+                    'label' => str_repeat('　', substr_count($folder->path, '/')).$folder->name,
+                    'path' => $folder->path,
+                ];
+            })
+            ->filter()
+            ->unique(fn ($option) => $option['id'] ?? 'root')
+            ->values();
+
+        $groups = [];
+
+        if ($recentOptions->isNotEmpty()) {
+            $groups[] = [
+                'label' => __('ui.files.recent_folders'),
+                'options' => $recentOptions->all(),
+            ];
+        }
+
+        $groups[] = [
+            'label' => __('ui.files.all_folders'),
+            'options' => $allOptions->all(),
+        ];
+
+        return $groups;
     }
 }
